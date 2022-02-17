@@ -1,1 +1,1 @@
-# BME580
+# Machine Learning Analysis of Schizophrenic EEG Records
