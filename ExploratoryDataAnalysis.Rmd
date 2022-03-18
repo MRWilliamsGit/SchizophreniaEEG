@@ -1,0 +1,161 @@
+---
+title: "ExploratoryDataAnalysis"
+author: "Maria Williams"
+date: "3/3/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Libraries:
+
+```{r}
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(gridExtra)
+library(ggcorrplot)
+```
+
+## Step 1) Load Dataset
+
+This dataset was originally created by the code found in the DataPreProcessing file. To run this notebook locally, download and extract the EEGdataFull file and replace the URL below with the URL local to your machine.
+
+```{r}
+EEGdata <- readRDS("C:/Users/maria/OneDrive/Documents/BioData/BME580Group/EEGdataFull.Rda")
+```
+
+## Step 2) Visualize Sample Data
+
+First we selected three random examples from each class, and pulled out only the first 2 seconds of each.
+
+```{r}
+#files - three control three diagnosed
+these <- list("C:/Users/maria/OneDrive/Documents/BioData/BME580Group/norm/S10W1.txt", "C:/Users/maria/OneDrive/Documents/BioData/BME580Group/norm/S59LW.txt", "C:/Users/maria/OneDrive/Documents/BioData/BME580Group/norm/S155W1.txt", "C:/Users/maria/OneDrive/Documents/BioData/BME580Group/sch/022w1.txt", "C:/Users/maria/OneDrive/Documents/BioData/BME580Group/sch/642w1.txt", "C:/Users/maria/OneDrive/Documents/BioData/BME580Group/sch/585w1.txt")
+
+#initiate sample
+sample <- data.frame()
+
+#set how many samples (128=1sec)
+ok <-256
+
+#pull in data
+for (f in these){
+  #read in file as list
+  hey <- read.delim(f, header=FALSE)
+
+  #reshape so each signal is a column
+  mini <- matrix(unlist(hey), nrow = 7680, ncol = 16)
+  mini <- as.data.frame(mini)
+
+  #append the first chunk of values
+  sample <- rbind(sample, head(mini, ok))
+}
+
+#rename columns
+titles <- list("F7", "F3", "F4", "F8", "T3", "C3", "Cz", "C4", "T4", "T5", "P3", "Pz", "P4", "T6", "O1", "O2")
+colnames(sample) <- titles
+
+#add column to indicate control or diagnosed
+d <-rep(0:1,each=3*ok)
+sample$diagnosis <- as.factor(d)
+
+#add a column to indicate subject
+s <- rep(1:6, each=ok)
+sample$subject <- as.factor(s)
+
+#add a column to indicate obs
+o <- rep(1:ok, times=6)
+sample$obs <- as.factor(o)
+
+```
+
+Then, we visualized the waveforms to see if there were any visible trends or differences between the classes.
+
+```{r}
+
+Fig1 = str_wrap("Fig 1: Data shown represents one second of activity captured at 128 Hz. Data is from six different subjects: three diagnosed with schizophrenic symptoms, and three determined to be non-symptomatic.", 120)
+
+P3plot = ggplot(sample, aes(x=obs, y=P3, group=subject, color=diagnosis)) +
+  geom_line(show.legend = FALSE)+
+  theme(axis.text.x=element_blank(), axis.title.x=element_blank(), plot.caption = element_text(hjust = 0.5, face= "italic"))+
+  scale_color_discrete(name = 'Diagnosis', labels=c("non-symptomatic", "schizophrenic" ))+
+  labs(title="P3 Region", y="voltage")
+
+O2plot = ggplot(sample, aes(x=obs, y=O2, group=subject, color=diagnosis)) +
+  geom_line()+
+  theme(axis.text.x=element_blank(), axis.title.x=element_blank(), plot.caption = element_text(hjust = 0.5, face= "italic"), legend.position="bottom")+
+  scale_color_discrete(name = 'Diagnosis:', labels=c("non-symptomatic", "schizophrenic" ))+
+  labs(title="O2 Region", caption=Fig1, y="voltage")
+
+grid.arrange(P3plot, O2plot, heights=c(1, 1.6))
+```
+
+
+This quick visualization does not show any obvious differences in the classes in amplitude or frequency, or any noticable trends.
+
+
+## Step 3) Full Data Box Plots
+
+To explore the full dataset, we first gather the summary data of each sensor for each subject.
+
+Note: This does not produce the final plot from our paper. Changes must not have been saved.
+
+```{r}
+#summarize across the entire brain activity for each subject
+allsum <- summary(t(EEGdata))
+
+#create as dataframe
+allsum <- as.data.frame.matrix(allsum)
+#rename columns since they have a strange leading character
+for (i in 1:84){
+    names(allsum)[i]<- paste("subject", i, sep="_")
+}
+#strip out numeric values
+for (i in 1:84){
+  allsum[,i]<- as.numeric(gsub(".*:", "", allsum[,i]))
+}
+
+#transpose so subjects are rows and summary stats are columns
+allsum <- t(allsum)
+colnames(allsum)<- c("Min", '1stQ', 'Median', 'Mean', '3rdQ', 'Max')
+allsum <- as.data.frame.matrix(allsum)
+
+#add column to indicate control or diagnosed
+d <-rep(c(0,1),times=c(39,45))
+allsum$diagnosis <- as.factor(d)
+
+```
+
+We then graph the resulting table.
+
+```{r}
+Minplot <- ggplot(allsum, aes(x=Min, group=diagnosis, fill=diagnosis)) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(title="Lowest Amp", x="voltage") +
+  theme(axis.text.x=element_blank(), axis.title.x=element_blank())+
+  coord_flip()
+Maxplot <- ggplot(allsum, aes(x=Max, group=diagnosis, fill=diagnosis)) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(title="Highest Amp", x=NULL) +
+  theme(axis.text.x=element_blank(), axis.title.x=element_blank())+
+  coord_flip()
+Meanplot <- ggplot(allsum, aes(x=Mean, group=diagnosis, fill=diagnosis)) +
+  geom_boxplot() +
+  labs(title="Average Amp", x=NULL) +
+  theme(axis.text.x=element_blank(), axis.title.x=element_blank())+
+  coord_flip()+
+  scale_fill_hue(name="Diagnosis", labels = c("non-symptomatic", "schizophrenic"))
+
+grid.arrange(Minplot, Maxplot, Meanplot, nrow=1, widths=c(.75,.75,1.5))
+                 
+```
+
+
+## Step 4) Correlation Plot
+
+This plot was not saved either.
