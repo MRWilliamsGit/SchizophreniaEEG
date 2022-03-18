@@ -1,0 +1,140 @@
+---
+title: "FeatureEngineering"
+author: "Maria Williams"
+date: "3/18/2022"
+output: html_document
+---
+
+Libraries:
+
+```{r}
+library(readxl)
+library(dbplyr)
+library(ggplot2)
+```
+
+## Step 1) Load Dataset
+
+This dataset was originally created by the code found in the DataPreProcessing file. To run this notebook locally, download and extract the EEGdataFull file and replace the URL below with the URL local to your machine.
+
+```{r}
+EEGdata <- readRDS("C:/Users/maria/OneDrive/Documents/BioData/BME580Group/EEGdataFull.Rda")
+```
+
+
+
+## Step 2) Feature Engineering
+
+For each of the sixteen channels, we will extract:
+
+* the average voltage 
+* the minimum voltage
+* the maximum voltage
+* the range of voltage measurements
+* the number of peaks in the voltage
+
+
+### Custom Function "MyWave"
+
+This function currently returns the number of peaks from a row, but hopefully we can extract some more data to return as well.
+
+```{r}
+#note: misses 'peaks' that sustain
+MyWave <- function (wiggle){
+  wigglelength <- length(wiggle)
+  holder <- vector(mode = "list", length = wigglelength)
+
+  #check first value
+  if (wiggle[1]>wiggle[2]){
+    holder[1]=="p"
+  }
+
+  #check last value
+  if (wiggle[wigglelength]>wiggle[wigglelength-1]){
+    holder[wigglelength]=="p"
+  }
+
+  #check inbetween values - doesn't work if start at 2
+  for (i in 3:wigglelength-1){
+    #cat(wiggle[i-1], wiggle[i], wiggle[i+1], '\n')
+    if (wiggle[i]>wiggle[i+1] && wiggle[i]>wiggle[i-1]){
+      holder[i]='p'
+    }
+  }
+
+  return (sum(holder=='p'))
+}
+
+```
+
+
+Here is a block of code to test it
+
+```{r}
+#testing - pulling out .5 second from three subjects
+hey <- EEGdata[1:3,1:64]
+#transpose (switch rows and columns)
+mini <- as.data.frame(t(hey))
+#quick visualization
+plot(mini[,2], type = 'l', xlab="", ylab="")
+#switch back to call function
+mini <- hey
+
+#function call
+mini$peaks <- apply(mini, 1, MyWave)
+print(mini$peaks)
+
+```
+
+
+
+### Feature Engineering on full dataset
+
+```{r}
+#start new dataframe with labels
+EEGnew <- data.frame(EEGdata[,122881])
+names(EEGnew)[1]<- "diagnosis"
+
+#list of sensors
+sensors <- list("F7", "F3", "F4", "F8", "T3", "C3", "Cz", "C4", "T4", "T5", "P3", "Pz", "P4", "T6", "O1", "O2")
+#list of new features
+columns <- list("avg", "min", "max", "range", "numpeaks")
+#counter for new columns (column 1 is the label)
+colcount = 2
+#counter for subsets
+chunkcount = 0
+
+for (s in sensors){
+  #print(names(EEGdata)[chunkcount+1])
+  #print(names(EEGdata)[chunkcount+7680])
+  
+  #subset the data from a single sensor
+  chunk <- EEGdata[(chunkcount+1):(chunkcount+7680)]
+  #get stats
+  EEGnew$ave <- apply(chunk, 1, mean)
+  EEGnew$min <- apply(chunk, 1, min)
+  EEGnew$max <- apply(chunk, 1, max)
+  EEGnew$range <- EEGnew$max - EEGnew$min
+  #get waveform details
+  EEGnew$peaks <- apply(chunk, 1, MyWave)
+  
+  #increment subset
+  chunkcount<-chunkcount+7680
+  
+  #rename columns
+  for (c in columns){
+    names(EEGnew)[colcount]<- paste(s, c, sep="_")
+    colcount <- colcount+1
+  }
+}
+
+```
+
+
+###Export File
+
+```{r}
+#export file as rda
+saveRDS(EEGdata,"C:/Users/maria/OneDrive/Documents/BioData/SchizophreniaEEG/EEGnew.rds")
+```
+
