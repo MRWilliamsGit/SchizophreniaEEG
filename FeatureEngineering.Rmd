@@ -1,7 +1,7 @@
 ---
 title: "FeatureEngineering"
 author: "Maria Williams"
-date: "3/18/2022"
+date: "3/23/2022"
 output: html_document
 ---
 
@@ -32,7 +32,6 @@ For each of the sixteen channels, we will extract:
 * the maximum voltage
 * the range of voltage measurements
 * the number of peaks in the voltage
-
 
 ### Custom Function "MyWave"
 
@@ -130,11 +129,61 @@ for (s in sensors){
 
 ```
 
+Separate chunk for correlation metrics as well
+
+```{r}
+#create the column names for the correlations
+#loops through the sensor names but omits 1:1 combos and flipped duplicates
+titles2= list()
+for (m in titles){
+  for (w in titles){
+    if (m!=w){
+      t=paste(w, m, "Cor", sep='_')
+      flip=paste(m, w, "Cor", sep='_')
+      if (flip %in% titles2){}
+      else {
+        titles2[[length(titles2) + 1]]=t
+      }
+    }
+  }
+}
+
+#instantiate the correlation dataframe separately
+corrTab <-data.frame(matrix(ncol=0, nrow=120))
+
+#for each subject, get the correlation values of its sensors
+for (i in 1:84){
+  #pull out one subject (remove dependant variable)
+  this <- EEGdata[i,1:122880]
+  #arrange it by sensor
+  this <- matrix(unlist(this), nrow = 7680, ncol = 16)
+  #get the correlations
+  corr <- round(cor(this), 2)
+  corr <- corr[lower.tri(corr, diag=FALSE)]
+  #add to dataframe
+  corrTab[,i] = corr
+  #later zero out less than .5?
+}
+
+#reshape so observations are rows
+corrTab=as.data.frame(t(corrTab))
+#rename columns
+names(corrTab)=titles2
+#add to dataset
+EEGnew<-cbind(EEGnew, corrTab)
+
+```
+
 
 ###Export File
 
+Final File includes 84 observations with 201 factors:
+* diagnosis flag
+* 80 sensore values (5 values for each of 16 sensors)
+* 120 correlation values (for each pair of 16 sensors)
+
 ```{r}
 #export file as rda
-saveRDS(EEGdata,"C:/Users/maria/OneDrive/Documents/BioData/SchizophreniaEEG/EEGnew.rds")
+saveRDS(EEGnew,"C:/Users/maria/OneDrive/Documents/BioData/SchizophreniaEEG/EEGnew.rds")
 ```
 
