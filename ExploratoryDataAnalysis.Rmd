@@ -78,8 +78,6 @@ Then, we visualized the waveforms to see if there were any visible trends or dif
 
 ```{r}
 
-Fig1 = str_wrap("Fig 1: Data shown represents one second of activity captured at 128 Hz. Data is from six different subjects: three diagnosed with schizophrenic symptoms, and three determined to be non-symptomatic.", 120)
-
 P3plot = ggplot(sample, aes(x=obs, y=P3, group=subject, color=diagnosis)) +
   geom_line(show.legend = FALSE)+
   theme(axis.text.x=element_blank(), axis.title.x=element_blank(), plot.caption = element_text(hjust = 0.5, face= "italic"))+
@@ -89,8 +87,8 @@ P3plot = ggplot(sample, aes(x=obs, y=P3, group=subject, color=diagnosis)) +
 O2plot = ggplot(sample, aes(x=obs, y=O2, group=subject, color=diagnosis)) +
   geom_line()+
   theme(axis.text.x=element_blank(), axis.title.x=element_blank(), plot.caption = element_text(hjust = 0.5, face= "italic"), legend.position="bottom")+
-  scale_color_discrete(name = 'Diagnosis:', labels=c("non-symptomatic", "schizophrenic" ))+
-  labs(title="O2 Region", caption=Fig1, y="voltage")
+  scale_color_discrete(name = 'Diagnosis:', labels=c("control", "schizophrenic" ))+
+  labs(title="O2 Region", y="voltage")
 
 grid.arrange(P3plot, O2plot, heights=c(1, 1.6))
 ```
@@ -98,12 +96,41 @@ grid.arrange(P3plot, O2plot, heights=c(1, 1.6))
 
 This quick visualization does not show any obvious differences in the classes in amplitude or frequency, or any noticable trends.
 
+## Step 3) Correlation Plots
 
-## Step 3) Full Data Box Plots
+We also created some correlation plots of the six random samples to see if we could visually identify any patterns of correlation.
+
+```{r}
+plots <- list()
+d="Control"
+
+for (i in 1:6){
+  #make title
+  if (i>3){d="Schizophrenic"}
+  yay <- cat("Subject", i, "(", d, ")")
+  
+  #pull out one subject
+  this <- sample[sample$subject==i,]
+  this <- this[1:16]
+
+  #get the correlations
+  corr <- round(cor(this), 1)
+  
+  #plot
+  plots[[i]] <- ggcorrplot(corr, show.legend = FALSE) +
+    labs(title = yay)
+}
+
+grid.arrange(plots[[1]], plots[[2]])
+
+
+```
+
+
+
+## Step 4) Full Data Box Plots
 
 To explore the full dataset, we first gather the summary data of each sensor for each subject.
-
-Note: This does not produce the final plot from our paper. Changes must not have been saved.
 
 ```{r}
 #summarize across the entire brain activity for each subject
@@ -125,6 +152,9 @@ allsum <- t(allsum)
 colnames(allsum)<- c("Min", '1stQ', 'Median', 'Mean', '3rdQ', 'Max')
 allsum <- as.data.frame.matrix(allsum)
 
+#add column for range
+allsum$Range <- allsum$Max-allsum$Min
+
 #add column to indicate control or diagnosed
 d <-rep(c(0,1),times=c(39,45))
 allsum$diagnosis <- as.factor(d)
@@ -134,28 +164,25 @@ allsum$diagnosis <- as.factor(d)
 We then graph the resulting table.
 
 ```{r}
+
 Minplot <- ggplot(allsum, aes(x=Min, group=diagnosis, fill=diagnosis)) +
   geom_boxplot(show.legend = FALSE) +
-  labs(title="Lowest Amp", x="voltage") +
-  theme(axis.text.x=element_blank(), axis.title.x=element_blank())+
-  coord_flip()
+  labs(title="Lowest Recorded Voltage", x="voltage") +
+  theme(axis.text.x=element_blank(), axis.title.x=element_blank())
 Maxplot <- ggplot(allsum, aes(x=Max, group=diagnosis, fill=diagnosis)) +
   geom_boxplot(show.legend = FALSE) +
-  labs(title="Highest Amp", x=NULL) +
-  theme(axis.text.x=element_blank(), axis.title.x=element_blank())+
-  coord_flip()
+  labs(title="Highest Recorded Voltage", x=NULL) +
+  theme(axis.text.x=element_blank(), axis.title.x=element_blank())
 Meanplot <- ggplot(allsum, aes(x=Mean, group=diagnosis, fill=diagnosis)) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(title="Average Recorded Voltage", x=NULL) +
+  theme(axis.text.x=element_blank(), axis.title.x=element_blank())
+Rangeplot <- ggplot(allsum, aes(x=Range, group=diagnosis, fill=diagnosis)) +
   geom_boxplot() +
-  labs(title="Average Amp", x=NULL) +
-  theme(axis.text.x=element_blank(), axis.title.x=element_blank())+
-  coord_flip()+
-  scale_fill_hue(name="Diagnosis", labels = c("non-symptomatic", "schizophrenic"))
+  labs(title="Range of Recorded Voltage", x=NULL) +
+  theme(axis.text.x=element_blank(), axis.title.x=element_blank(), legend.position="bottom")+
+  scale_fill_discrete(name="Diagnosis", labels = c("control", "schizophrenic"))
 
-grid.arrange(Minplot, Maxplot, Meanplot, nrow=1, widths=c(.75,.75,1.5))
+grid.arrange(Minplot, Maxplot, Meanplot, Rangeplot, nrow=4, heights=c(.13, .13, .13, .2))
                  
 ```
-
-
-## Step 4) Correlation Plot
-
-This plot was not saved either.
