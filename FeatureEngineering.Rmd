@@ -110,7 +110,7 @@ for (s in sensors){
   #subset the data from a single sensor
   chunk <- EEGdata[(chunkcount+1):(chunkcount+7680)]
   #get stats
-  EEGnew$ave <- apply(chunk, 1, mean)
+  EEGnew$avg <- apply(chunk, 1, mean)
   EEGnew$min <- apply(chunk, 1, min)
   EEGnew$max <- apply(chunk, 1, max)
   EEGnew$range <- EEGnew$max - EEGnew$min
@@ -129,7 +129,7 @@ for (s in sensors){
 
 ```
 
-Separate chunk for correlation metrics as well
+Separate chunk for correlation metrics
 
 ```{r}
 #create the column names for the correlations
@@ -153,16 +153,17 @@ corrTab <-data.frame(matrix(ncol=0, nrow=120))
 
 #for each subject, get the correlation values of its sensors
 for (i in 1:84){
-  #pull out one subject (remove dependant variable)
+  #pull out one subject (remove dependent variable)
   this <- EEGdata[i,1:122880]
   #arrange it by sensor
   this <- matrix(unlist(this), nrow = 7680, ncol = 16)
   #get the correlations
   corr <- round(cor(this), 2)
   corr <- corr[lower.tri(corr, diag=FALSE)]
+  #zero out values <.5
+  corr[corr<.5]=0
   #add to dataframe
   corrTab[,i] = corr
-  #later zero out less than .5?
 }
 
 #reshape so observations are rows
@@ -179,11 +180,11 @@ EEGnew<-cbind(EEGnew, corrTab)
 
 Final File includes 84 observations with 201 factors:
 * diagnosis flag
-* 80 sensore values (5 values for each of 16 sensors)
+* 80 sensor stats (5 stats for each of the 16 sensors)
 * 120 correlation values (for each pair of 16 sensors)
 
 ```{r}
 #export file as rda
-saveRDS(EEGnew,"C:/Users/maria/OneDrive/Documents/BioData/SchizophreniaEEG/EEGnew.rds")
+#saveRDS(EEGnew,"C:/Users/maria/OneDrive/Documents/BioData/SchizophreniaEEG/EEGnew.rds")
 ```
 
