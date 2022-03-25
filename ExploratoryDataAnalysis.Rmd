@@ -3,8 +3,10 @@ title: "ExploratoryDataAnalysis"
 author: "Maria Williams"
 date: "3/3/2022"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -167,22 +169,22 @@ We then graph the resulting table.
 
 Minplot <- ggplot(allsum, aes(x=Min, group=diagnosis, fill=diagnosis)) +
   geom_boxplot(show.legend = FALSE) +
-  labs(title="Lowest Recorded Voltage", x="voltage") +
-  theme(axis.text.x=element_blank(), axis.title.x=element_blank())
+  labs(title="Lowest Recorded Voltage", x=NULL) +
+  theme(text = element_text(size=20), axis.text.y=element_blank(), axis.title.y=element_blank())
 Maxplot <- ggplot(allsum, aes(x=Max, group=diagnosis, fill=diagnosis)) +
   geom_boxplot(show.legend = FALSE) +
   labs(title="Highest Recorded Voltage", x=NULL) +
-  theme(axis.text.x=element_blank(), axis.title.x=element_blank())
+  theme(text = element_text(size=20), axis.text.y=element_blank(), axis.title.y=element_blank())
 Meanplot <- ggplot(allsum, aes(x=Mean, group=diagnosis, fill=diagnosis)) +
   geom_boxplot(show.legend = FALSE) +
   labs(title="Average Recorded Voltage", x=NULL) +
-  theme(axis.text.x=element_blank(), axis.title.x=element_blank())
+  theme(text = element_text(size=20), axis.text.y=element_blank(), axis.title.y=element_blank())
 Rangeplot <- ggplot(allsum, aes(x=Range, group=diagnosis, fill=diagnosis)) +
   geom_boxplot() +
   labs(title="Range of Recorded Voltage", x=NULL) +
-  theme(axis.text.x=element_blank(), axis.title.x=element_blank(), legend.position="bottom")+
+  theme(text = element_text(size=20), axis.text.y=element_blank(), axis.title.y=element_blank(), legend.position="bottom")+
   scale_fill_discrete(name="Diagnosis", labels = c("control", "schizophrenic"))
 
-grid.arrange(Minplot, Maxplot, Meanplot, Rangeplot, nrow=4, heights=c(.13, .13, .13, .2))
+grid.arrange(Minplot, Maxplot, Meanplot, Rangeplot, nrow=4, heights=c(1, 1, 1, 1.3))
                  
 ```
