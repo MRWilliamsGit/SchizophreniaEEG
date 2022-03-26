@@ -25,48 +25,15 @@ EEGdata <- readRDS("C:/Users/maria/OneDrive/Documents/BioData/BME580Group/EEGdat
 
 ## Step 2) Feature Engineering
 
-For each of the sixteen channels, we will extract:
-
-* the average voltage 
-* the minimum voltage
-* the maximum voltage
-* the range of voltage measurements
-* the number of peaks in the voltage
-
 ### Custom Function "MyWave"
 
-This function currently returns the number of peaks from a row, but hopefully we can extract some more data to return as well.
-
-```{r}
-#note: misses 'peaks' that sustain
-MyWave <- function (wiggle){
-  wigglelength <- length(wiggle)
-  holder <- vector(mode = "list", length = wigglelength)
-
-  #check first value
-  if (wiggle[1]>wiggle[2]){
-    holder[1]=="p"
-  }
-
-  #check last value
-  if (wiggle[wigglelength]>wiggle[wigglelength-1]){
-    holder[wigglelength]=="p"
-  }
-
-  #check inbetween values - doesn't work if start at 2
-  for (i in 3:wigglelength-1){
-    #cat(wiggle[i-1], wiggle[i], wiggle[i+1], '\n')
-    if (wiggle[i]>wiggle[i+1] && wiggle[i]>wiggle[i-1]){
-      holder[i]='p'
-    }
-  }
-
-  return (sum(holder=='p'))
-}
-
-```
-
-This is a different version (same name)
+This function receives one waveform and returns:
+* the number of valleys in the wave
+* the number of peaks in the wave
+* the average voltage of the valleys of the wave
+* the average voltage of the peaks of the wave
+* the range of voltage of the valleys of the wave
+* the range of voltage of the peaks of the wave
 
 ```{r}
 MyWave <- function (wiggle){
@@ -176,6 +143,22 @@ mini<-cbind(mini, miniwave)
 
 
 ### Feature Engineering on full dataset
+
+For each of the sixteen channels, we will extract:
+
+* the average voltage 
+* the minimum voltage
+* the maximum voltage
+* the range of voltage measurements
+
+We will use the MyWave function to extract:
+
+* the number of valleys in the wave
+* the number of peaks in the wave
+* the average voltage of the valleys of the wave
+* the average voltage of the peaks of the wave
+* the range of voltage of the valleys of the wave
+* the range of voltage of the peaks of the wave
 
 ```{r}
 #start new dataframe with labels
