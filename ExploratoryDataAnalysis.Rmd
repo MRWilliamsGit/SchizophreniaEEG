@@ -183,7 +183,7 @@ Rangeplot <- ggplot(allsum, aes(x=Range, group=diagnosis, fill=diagnosis)) +
   geom_boxplot() +
   labs(title="Range of Recorded Voltage", x=NULL) +
   theme(text = element_text(size=20), axis.text.y=element_blank(), axis.title.y=element_blank(), legend.position="bottom")+
-  scale_fill_discrete(name="Diagnosis", labels = c("Control", "Schizophrenic"))
+  scale_fill_discrete(name="Diagnosis:", labels = c("Control", "Schizophrenic"))
 
 grid.arrange(Minplot, Maxplot, Meanplot, Rangeplot, nrow=4, heights=c(1, 1, 1, 1.5))
                  
