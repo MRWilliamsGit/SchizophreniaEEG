@@ -66,6 +66,91 @@ MyWave <- function (wiggle){
 
 ```
 
+This is a different version (same name)
+
+```{r}
+MyWave <- function (wiggle){
+  wigglelength <- length(wiggle)
+  peaks <- rep(NA, wigglelength)
+  vals <- rep(NA, wigglelength)
+
+  #setting index value
+  #using while loop instead of for loop because we will skip indexes
+  i=1
+  while (i<=wigglelength){
+    
+    #first set the position to compare
+    #usually the next value but sometimes values are sustained
+    n=1
+    #print(cat(i, wigglelength, wiggle[i], wiggle[i+n], n))
+    while (i<wigglelength && wiggle[i]==wiggle[i+n] && i+n<=wigglelength){
+      n=n+1
+    }
+
+    #if its the first one
+    if (i==1){
+      if (wiggle[i]<wiggle[i+n]){
+        vals[i]=wiggle[i]
+      }
+      else if (wiggle[i]>wiggle[i+n]){
+        peaks[i]=wiggle[i]
+      }
+      else{
+        #should not happen
+        print("First value not evaluated")
+      }
+    }
+    
+    #if its in the middle
+    else if (i>1 && i<wigglelength && i+n<=wigglelength){
+      if (wiggle[i-1] > wiggle[i] && wiggle[i] < wiggle[i+n]){
+        vals[i]=wiggle[i]
+      }
+      else if (wiggle[i-1] < wiggle[i] && wiggle[i] > wiggle[i+n]){
+        peaks[i]=wiggle[i]
+      }
+      else{
+        #should be just in the middle of ascent/descent
+      }
+    }
+    
+    #if its the last
+    else if (i==wigglelength || i+n>=wigglelength){
+      if (wiggle[i]<wiggle[i-1]){
+        vals[i]=wiggle[i]
+      }
+      else if (wiggle[i]>wiggle[i-1]){
+        peaks[i]=wiggle[i]
+      }
+      else{
+        #should only happen if the last value is sustained
+        print(cat("current value:", wiggle[i], "\nComparison value:", wiggle[i-1]))
+      }
+    } 
+    
+    #increment to next non-equal index
+    i=i+n
+  }
+  #calculate number of peaks/valleys
+  numv <- wigglelength - sum(is.na(vals))
+  nump <- wigglelength - sum(is.na(peaks))
+  #calculate average peak/valley
+  avgv <- mean(vals, na.rm=TRUE)
+  avgp <- mean(peaks, na.rm=TRUE)
+  #calculate range of peaks/valleys
+  rangev <- max(vals, na.rm=TRUE)-min(vals, na.rm=TRUE)
+  rangep <- max(peaks, na.rm=TRUE)-min(peaks, na.rm=TRUE)
+  #calculate average / range of wavelength
+  #calculate avg/range of descents/ascents
+  #avgd
+  #avga
+  #ranged
+  #rangea
+  
+  
+  return (c(numv, nump, avgv, avgp, rangev, rangep))
+}
+```
 
 Here is a block of code to test it
 
@@ -75,13 +160,16 @@ hey <- EEGdata[1:3,1:64]
 #transpose (switch rows and columns)
 mini <- as.data.frame(t(hey))
 #quick visualization
-plot(mini[,2], type = 'l', xlab="", ylab="")
+plot(mini[,1], type = 'l', xlab="", ylab="")
 #switch back to call function
 mini <- hey
 
 #function call
-mini$peaks <- apply(mini, 1, MyWave)
-print(mini$peaks)
+miniwave <- apply(mini, 1, MyWave)
+#mini$peaks <- apply(mini, 1, MyWave)
+#reshape so observations are rows
+miniwave<-as.data.frame(t(miniwave))
+mini<-cbind(mini, miniwave)
 
 ```
 
@@ -97,7 +185,7 @@ names(EEGnew)[1]<- "diagnosis"
 #list of sensors
 sensors <- list("F7", "F3", "F4", "F8", "T3", "C3", "Cz", "C4", "T4", "T5", "P3", "Pz", "P4", "T6", "O1", "O2")
 #list of new features
-columns <- list("avg", "min", "max", "range", "numpeaks")
+columns <- list("avg", "min", "max", "range", "valnum", "peaknum","valavg", "peakavg", "valrange", "peakrange")
 #counter for new columns (column 1 is the label)
 colcount = 2
 #counter for subsets
@@ -115,7 +203,10 @@ for (s in sensors){
   EEGnew$max <- apply(chunk, 1, max)
   EEGnew$range <- EEGnew$max - EEGnew$min
   #get waveform details
-  EEGnew$peaks <- apply(chunk, 1, MyWave)
+  EEGwave <- apply(chunk, 1, MyWave)
+  EEGwave <- as.data.frame(t(EEGwave))
+  #add to dataset
+  EEGnew <- cbind(EEGnew, EEGwave)
   
   #increment subset
   chunkcount<-chunkcount+7680
@@ -178,9 +269,10 @@ EEGnew<-cbind(EEGnew, corrTab)
 
 ###Export File
 
-Final File includes 84 observations with 201 factors:
+Final File includes 84 observations with 281 factors:
 * diagnosis flag
-* 80 sensor stats (5 stats for each of the 16 sensors)
+* 64 sensor stats (4 stats for each of the 16 sensors)
+* 96 waveform stats (6 stats for each of the 16 sensors)
 * 120 correlation values (for each pair of 16 sensors)
 
 ```{r}
