@@ -1,5 +1,4 @@
 ---
-title: "HW4"
 author: "Amadu Toronka"
 output:
   pdf_document: default
