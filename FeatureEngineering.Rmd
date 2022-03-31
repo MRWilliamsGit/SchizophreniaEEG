@@ -1,7 +1,7 @@
 ---
 title: "FeatureEngineering"
 author: "Maria Williams"
-date: "3/23/2022"
+date: "3/26/2022"
 output: html_document
 ---
 
@@ -107,7 +107,7 @@ MyWave <- function (wiggle){
   #calculate range of peaks/valleys
   rangev <- max(vals, na.rm=TRUE)-min(vals, na.rm=TRUE)
   rangep <- max(peaks, na.rm=TRUE)-min(peaks, na.rm=TRUE)
-  #calculate average / range of wavelength
+  #calculate average / range of wavelength (distance between peaks)
   #calculate avg/range of descents/ascents
   #avgd
   #avga
@@ -133,8 +133,6 @@ mini <- hey
 
 #function call
 miniwave <- apply(mini, 1, MyWave)
-#mini$peaks <- apply(mini, 1, MyWave)
-#reshape so observations are rows
 miniwave<-as.data.frame(t(miniwave))
 mini<-cbind(mini, miniwave)
 
@@ -168,7 +166,7 @@ names(EEGnew)[1]<- "diagnosis"
 #list of sensors
 sensors <- list("F7", "F3", "F4", "F8", "T3", "C3", "Cz", "C4", "T4", "T5", "P3", "Pz", "P4", "T6", "O1", "O2")
 #list of new features
-columns <- list("avg", "min", "max", "range", "valnum", "peaknum","valavg", "peakavg", "valrange", "peakrange")
+columns <- list("avg", "min", "max", "range", "num_vals", "num_peaks","avg_vals", "avg_peaks", "range_vals", "range_peaks")
 #counter for new columns (column 1 is the label)
 colcount = 2
 #counter for subsets
