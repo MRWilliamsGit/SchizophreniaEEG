@@ -1,0 +1,117 @@
+---
+author: "Amadu Toronka"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(corrplot)
+library(utils)
+library(MASS)
+library(ROCR)
+library(caret)
+library(gmodels)
+library(caTools)
+library(class)
+library(MLmetrics)
+
+set.seed(580)
+```
+
+This file contains analysis for data science project.
+LOG_____________________________________________________________________________
+03/29/21:
+Amadu: Performed univariate analysis on the correlation data.
+       Performed LDA analysis for feature selection
+       See pVal_Corr.xlsx for results
+
+```{r}
+data <- readRDS(file="EEGnew.rds")
+```
+
+```{r}
+# Univariate analysis on the corr data
+# T-test and p-values calculated for each of the corr data points
+sensors <- list("F7", "F3", "F4", "F8", "T3", "C3", "Cz", "C4", "T4", "T5", "P3", "Pz", "P4", "T6", "O1", "O2")
+disc = "Cor"
+
+iterations = 120
+variables = 2
+output <- matrix(ncol=variables, nrow=iterations)
+#val = t.test( eval(parse(text = 'F7_avg~diagnosis')), data = data, var.equal = TRUE, paired = FALSE )
+#val$p.value
+iter = 1
+for ( s1 in sensors ) {
+  for ( s2 in sensors ) {
+    if ( s1 != s2 ) { # no correlation between two of the same channel
+      try ( # the order of s1 and s2 matters, so use try catch
+        {
+          n1 = paste(s1, s2, sep="_")
+          n2 = paste(n1, disc, sep="_")
+          name = paste(n2, "diagnosis", sep="~")
+          val = t.test( eval(parse(text = name)), data = data, var.equal = TRUE, paired = FALSE )
+          output[iter,1] <- n2
+          output[iter,2] <- val$p.value
+          iter = iter + 1
+        }
+        , silent = T
+      )
+    } # end of s1 != s2
+  } # end of s2 in sesors
+} # end of s1 in sesors
+```
+
+```{r}
+# Combining data: Individual
+mydata = data.frame(data$diagnosis)
+
+sensors <- list("F7", "F3", "F4", "F8", "T3", "C3", "Cz", "C4", "T4", "T5", "P3", "Pz", "P4", "T6", "O1", "O2")
+disc = "peakrange"
+for ( s in sensors ) {
+  name = paste(s, disc, sep="_")
+  #print(name)
+  varName = paste("data", name, sep="$")
+  mydata[[name]] <- eval(parse(text = varName))
+}
+
+# LDA Model
+ldaMod = lda(data.diagnosis~., data = mydata)
+ldaMod
+```
+
+```{r}
+# Combining data: Multi
+mydata = data.frame(data$diagnosis)
+
+sensors <- list("F7", "F3", "F4", "F8", "T3", "C3", "Cz", "C4", "T4", "T5", "P3", "Pz", "P4", "T6", "O1", "O2")
+disc <- list("avg", "min", "max", "range", "valnum", "peaknum","valavg", "peakavg", "valrange", "peakrange")
+for ( d in disc ) {
+  for ( s in sensors ) {
+    name = paste(s, d, sep="_")
+    #print(name)
+    varName = paste("data", name, sep="$")
+    mydata[[name]] <- eval(parse(text = varName)) 
+  }
+}
+
+# LDA Model
+ldaMod = lda(data.diagnosis~., data = mydata)
+ldaMod
+```
+
+```{r}
+# LDA Model
+ldaMod = lda(data.diagnosis~., data = mydata)
+ldaMod
+
+```
+
+
+```{r}
+# Logistic Regression Model
+
+```
+
