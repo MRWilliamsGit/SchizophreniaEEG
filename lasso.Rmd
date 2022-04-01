@@ -1,0 +1,146 @@
+```{r}
+library(ggplot2)
+library(psych) # Contains the winsor function and other helpful statistical tools
+library(tidyverse) # Remember from last homework that dplyr is included in tidyverse
+library(gridExtra)
+library(corrplot)
+library(patchwork)
+library(utils)
+library(factoextra)
+library(tidyverse)
+library(MASS)
+library(ROCR)
+library(caret)
+library(gmodels)
+library(caTools)
+library(glmnet)
+library(class)
+
+set.seed(580)
+library(RColorBrewer) #easier to see correlation matrix
+```
+
+
+```{r}
+#EEGdata <- readRDS("/Users/christian/Documents/BME580/EEGnew.rds")
+EEGdata <- readRDS(file = "EEGnew.rds")
+
+#corrdf <- cor(subset(EEGdata, select= -c(diagnosis)))
+#corrplot(corrdf, type = 'upper', method='number',tl.col="black", tl.srt=45, title='Correlation of EEG Data', mar=c(0,0,1,0), col=brewer.pal(n=10,name="RdBu"))
+```
+
+```{r}
+scaleData = EEGdata
+scaleData[2:281] = scale(EEGdata[2:281])
+```
+
+```{r}
+pr.out=prcomp(scaleData[2:281], scale=TRUE)
+summary(pr.out)
+```
+
+```{r}
+get_eig(pr.out)
+pr.out$rotation
+```
+
+```{r}
+fviz_eig(pr.out, addlabels = TRUE)
+fviz_eig(pr.out, addlabels = TRUE)
+fviz_pca_biplot(pr.out,col.ind='coord', #color of dots depends on size of loading
+             repel = T) #makes sure names dont overlap)
+```
+
+```{r}
+eigens = get_eigenvalue(pr.out)
+varThreshold = 95
+numComp = 0
+sumComp = 0
+for (i in eigens$cumulative.variance.percent ) {
+  if ( i <= varThreshold ) {
+    sumComp = i
+    numComp = numComp + 1
+  } else {
+    break
+  }
+}
+```
+
+```{r}
+# Combining PCA to get the loading vector for chosen features
+numFeat = 280
+loadings <- pr.out$rotation
+chosenMat <- matrix(ncol=1, nrow=numFeat)
+for ( i in seq(numFeat) ) {
+  chosenMat[i,1] <- sum(abs(loadings[i,1:numComp]))
+}
+sortedMat = sort(chosenMat, decreasing = T)
+percentChosen = 0.30 # percent of features to choose
+numChosen = ceiling(percentChosen * numFeat)
+arrChosen = matrix(ncol=numChosen, nrow = 1) # indices of chosen features
+for ( i in seq(arrChosen) ) {
+  for ( j in seq(numFeat) ) {
+    if ( near(sortedMat[i], chosenMat[j], tol = .Machine$double.eps^0.5) ) {
+      # print('in here')
+      arrChosen[1, i] <- j
+      break # found, exit inner loop
+    }
+  }
+}
+
+chosenFeat = data.frame(diagnosis = EEGdata$diagnosis)
+EEGNames = colnames(EEGdata)
+for ( i in seq(ncol(arrChosen)) ) {
+  index = arrChosen[i]
+  name = EEGNames[index]
+  # chosenFeat[[name]] <- EEGdata[,index]
+  chosenFeat[[name]] <- scaleData[,index]
+}
+```
+
+```{r}
+# Regularized Logistic Regression
+# Ref: http://www.sthda.com/english/articles/36-classification-methods-essentials/149-penalized-logistic-regression-essentials-in-r-ridge-lasso-and-elastic-net/
+
+importanceMat = matrix(0, 1, ncol(arrChosen))
+importanceName = matrix(ncol=1, nrow=ncol(arrChosen))
+set.seed(123)
+
+# Doing a 10 fold validation with regularizer term chosen using a 10 fold internal cross validation. Feature importance histogram in plotted
+
+# TODO: Need to add name to the histogram
+for ( imp in seq(10) ) {
+  training.samples <- chosenFeat$diagnosis %>% 
+  createDataPartition(p = 0.7, list = FALSE)
+  train.data  <- chosenFeat[training.samples, ]
+  test.data <- chosenFeat[-training.samples, ]
+
+  # TODO: check if positive class is one or zero
+  # Dumy code categorical predictor variables
+  x <- model.matrix(diagnosis~., train.data)[,-1]
+  y = train.data$diagnosis
+
+
+  # Find the best lambda using cross-validation
+  cv.lasso <- cv.glmnet(x, y, alpha = 1, family = "binomial")
+  # Fit the final model on the training data
+  model <- glmnet(x, y, alpha = 1, family = "binomial", lambda = cv.lasso$lambda.min)
+  # Display regression coefficients
+  coefficients <- coef(model)
+  # Make predictions on the test data
+  x.test <- model.matrix(diagnosis ~., test.data)[,-1]
+  probabilities <- model %>% predict(newx = x.test)
+  predicted.classes <- ifelse(probabilities > 0.5, 1, 0)
+  # Model accuracy
+  observed.classes <- test.data$diagnosis
+  mean(predicted.classes == observed.classes)
+  
+  for ( idx in seq(2, length(coefficients@i)) ) {
+    iIdx = coefficients@i[idx]
+    importanceMat[,iIdx] = importanceMat[,iIdx] + 1
+  }
+  
+}
+hist(importanceMat)
+```
+
