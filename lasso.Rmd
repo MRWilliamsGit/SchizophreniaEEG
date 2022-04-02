@@ -102,13 +102,14 @@ for ( i in seq(ncol(arrChosen)) ) {
 # Regularized Logistic Regression
 # Ref: http://www.sthda.com/english/articles/36-classification-methods-essentials/149-penalized-logistic-regression-essentials-in-r-ridge-lasso-and-elastic-net/
 
-importanceMat = matrix(0, 1, ncol(arrChosen))
+# importanceMat = matrix(0, 1, ncol(arrChosen))
+importanceMat = matrix(0, ncol(arrChosen))
 importanceName = matrix(ncol=1, nrow=ncol(arrChosen))
 set.seed(123)
 
 # Doing a 10 fold validation with regularizer term chosen using a 10 fold internal cross validation. Feature importance histogram in plotted
 
-# TODO: Need to add name to the histogram
+accuracies =  matrix(ncol=1, nrow=10)
 for ( imp in seq(10) ) {
   training.samples <- chosenFeat$diagnosis %>% 
   createDataPartition(p = 0.7, list = FALSE)
@@ -133,14 +134,44 @@ for ( imp in seq(10) ) {
   predicted.classes <- ifelse(probabilities > 0.5, 1, 0)
   # Model accuracy
   observed.classes <- test.data$diagnosis
-  mean(predicted.classes == observed.classes)
+  accuracies[imp,] = mean(predicted.classes == observed.classes)
   
   for ( idx in seq(2, length(coefficients@i)) ) {
     iIdx = coefficients@i[idx]
-    importanceMat[,iIdx] = importanceMat[,iIdx] + 1
+    importanceMat[iIdx,] = importanceMat[iIdx,] + 1
   }
   
 }
-hist(importanceMat)
+for ( i in seq(2, length(colnames(chosenFeat))) ) {
+    importanceName[i-1,] = colnames(chosenFeat[i])
+}
+
+importance = data.frame(name=importanceName, frequency=importanceMat)
+importance = importance[order(importance$frequency),]
+
+# Accuracy per fold
+print(accuracies)
+```
+
+
+```{r}
+# Finding nonzeros in importance frequency
+freqPercent = 5 # features chosen at least x times
+for ( i in seq(nrow(importance)) ) {
+  if ( importance[i,]$frequency >= freqPercent ) {
+    break
+  }
+}
+
+nonzeroImportance = importance[i:nrow(importance),]
+title = sprintf("Features Chosen at least %d time(s)", freqPercent)
+ggplot(nonzeroImportance, aes(x=reorder(name, frequency), weight=frequency)) + 
+  geom_bar() +
+  scale_fill_discrete(name="Variable Group") +
+  ylab("Frequency") +
+  xlab("Variable Name") +
+  ggtitle(title) +
+  coord_flip()
+
 ```
 
