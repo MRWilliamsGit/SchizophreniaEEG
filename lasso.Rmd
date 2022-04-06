@@ -115,7 +115,6 @@ set.seed(123)
 # Doing a 10 fold validation with regularizer term chosen using a 10 fold internal cross validation. Feature importance histogram in plotted
 
 accuracies =  matrix(ncol=1, nrow=10)
-aucs = matrix(ncol=1, nrow=10)
 for ( imp in seq(10) ) {
   training.samples <- chosenFeat$diagnosis %>% 
   createDataPartition(p = 0.7, list = FALSE)
@@ -123,7 +122,7 @@ for ( imp in seq(10) ) {
   test.data <- chosenFeat[-training.samples, ]
 
   # TODO: check if positive class is one or zero
-  # Dumm code categorical predictor variables
+  # Dumy code categorical predictor variables
   x <- model.matrix(diagnosis~., train.data)[,-1]
   y = train.data$diagnosis
 
@@ -141,8 +140,6 @@ for ( imp in seq(10) ) {
   # Model accuracy
   observed.classes <- test.data$diagnosis
   accuracies[imp,] = mean(predicted.classes == observed.classes)
-  aucs[imp,] = glmnet:::auc(test.data$diagnosis,probabilities)
-  #performance(pred, measure = "auc")
   
   for ( idx in seq(2, length(coefficients@i)) ) {
     iIdx = coefficients@i[idx]
@@ -157,10 +154,8 @@ for ( i in seq(2, length(colnames(chosenFeat))) ) {
 importance = data.frame(name=importanceName, frequency=importanceMat)
 importance = importance[order(importance$frequency),]
 
-# AUC per fold
-# print(accuracies)
-sprintf("The AUC per fold: ")
-print(aucs)
+# Accuracy per fold
+print(accuracies)
 ```
 
 
@@ -181,7 +176,7 @@ ggplot(nonzeroImportance, aes(x=reorder(name, frequency), weight=frequency, (col
   scale_fill_discrete(name="Variable Group") +
   ylab("Frequency") +
   xlab("Feature Name") +
-  labs(title=title, subtitle="As determined by ten trails") +
+  labs(title=title, subtitle="As determined by ten trials") +
   coord_flip()
 
 ```
