@@ -1,0 +1,146 @@
+```{r}
+library(ggplot2)
+library(psych) # Contains the winsor function and other helpful statistical tools
+library(tidyverse) # Remember from last homework that dplyr is included in tidyverse
+library(gridExtra)
+library(corrplot)
+library(patchwork)
+library(utils)
+library(factoextra)
+library(tidyverse)
+library(MASS)
+library(ROCR)
+library(caret)
+library(gmodels)
+library(caTools)
+library(class)
+
+set.seed(580)
+library(RColorBrewer) #easier to see correlation matrix
+```
+
+
+```{r}
+EEGdata <- readRDS("/Users/christian/Documents/BME580/EEGnew.rds")
+
+
+#corrdf <- cor(subset(EEGdata, select= -c(diagnosis)))
+#corrplot(corrdf, type = 'upper', method='number',tl.col="black", tl.srt=45, title='Correlation of EEG Data', mar=c(0,0,1,0), col=brewer.pal(n=10,name="RdBu"))
+```
+
+```{r}
+scaleData = EEGdata
+scaleData[2:281] = scale(EEGdata[2:281])
+```
+
+```{r}
+pr.out=prcomp(scaleData[2:281], scale=TRUE)
+summary(pr.out)
+```
+
+```{r}
+get_eig(pr.out)
+pr.out$rotation
+```
+
+```{r}
+fviz_eig(pr.out, addlabels = TRUE)
+fviz_eig(pr.out, addlabels = TRUE)
+fviz_pca_biplot(pr.out,col.ind='coord', #color of dots depends on size of loading
+             repel = T) #makes sure names dont overlap)
+```
+
+KNN
+
+```{r}
+dataknn = sample.split(scaleData$diagnosis, 70/100) # only 84 observations so small
+train = subset(scaleData, dataknn == TRUE)
+test = subset(scaleData, dataknn == FALSE)
+mod_knn = knn(train,test,cl=train$diagnosis,k=round(sqrt(nrow(train))))
+
+confusionTab = table(Predicted = mod_knn, Actual = test$diagnosis)
+confusionTab
+```
+
+```{r}
+prec_mod = (confusionTab[2,2])/(confusionTab[2,2]+confusionTab[2,1])
+print(paste("Precision:",prec_mod))
+acc_mod = (confusionTab[1,1]+confusionTab[2,2])/length(test$diagnosis)
+print(paste("Accuracy:",acc_mod))
+err_mod = 1-acc_mod
+print(paste("Error rate:", err_mod))
+sens_mod = (confusionTab[2,2])/(confusionTab[2,2]+confusionTab[1,2])
+print(paste("Sensitivity", sens_mod))
+```
+
+```{r}
+folds = createFolds(scaleData$diagnosis,k=10)
+folds
+
+fold1_knn = knn(scaleData[c(folds$Fold02,folds$Fold03,folds$Fold04,folds$Fold05,folds$Fold06,folds$Fold07,folds$Fold08,folds$Fold09,folds$Fold10),],scaleData[folds$Fold01,],cl=scaleData$diagnosis[c(folds$Fold02,folds$Fold03,folds$Fold04,folds$Fold05,folds$Fold06,folds$Fold07,folds$Fold08,folds$Fold09,folds$Fold10)],k=round(sqrt(length(folds$Fold01))))
+cT1 = table(Predicted = fold1_knn, Actual = scaleData$diagnosis[folds$Fold01])
+
+fold2_knn = knn(scaleData[c(folds$Fold01,folds$Fold03,folds$Fold04,folds$Fold05,folds$Fold06,folds$Fold07,folds$Fold08,folds$Fold09,folds$Fold10),],scaleData[folds$Fold02,],cl=scaleData$diagnosis[c(folds$Fold01,folds$Fold03,folds$Fold04,folds$Fold05,folds$Fold06,folds$Fold07,folds$Fold08,folds$Fold09,folds$Fold10)],k=round(sqrt(length(folds$Fold02))))
+cT2 = table(Predicted = fold2_knn, Actual = scaleData$diagnosis[folds$Fold02])
+
+#fold2_knn = knn(scaleData[c(folds$Fold1,folds$Fold3,folds$Fold4),],scaleData[folds$Fold2,],cl=scaleData$diagnosis[c(folds$Fold1,folds$Fold3,folds$Fold4)],k=round(sqrt(length(folds$Fold2))))
+#cT2 = table(Predicted = fold2_knn, Actual = scaleData$diagnosis[folds$Fold2])
+
+
+fold3_knn = knn(scaleData[c(folds$Fold01,folds$Fold02,folds$Fold04,folds$Fold05,folds$Fold06,folds$Fold07,folds$Fold08,folds$Fold09,folds$Fold10),],scaleData[folds$Fold03,],cl=scaleData$diagnosis[c(folds$Fold01,folds$Fold02,folds$Fold04,folds$Fold05,folds$Fold06,folds$Fold07,folds$Fold08,folds$Fold09,folds$Fold10)],k=round(sqrt(length(folds$Fold03))))
+cT3 = table(Predicted = fold3_knn, Actual = scaleData$diagnosis[folds$Fold03])
+
+fold4_knn = knn(scaleData[c(folds$Fold01,folds$Fold02,folds$Fold03,folds$Fold05,folds$Fold06,folds$Fold07,folds$Fold08,folds$Fold09,folds$Fold10),],scaleData[folds$Fold04,],cl=scaleData$diagnosis[c(folds$Fold01,folds$Fold02,folds$Fold03,folds$Fold05,folds$Fold06,folds$Fold07,folds$Fold08,folds$Fold09,folds$Fold10)],k=round(sqrt(length(folds$Fold04))))
+cT4 = table(Predicted = fold4_knn, Actual = scaleData$diagnosis[folds$Fold04])
+
+fold5_knn = knn(scaleData[c(folds$Fold01,folds$Fold02,folds$Fold03,folds$Fold04,folds$Fold06,folds$Fold07,folds$Fold08,folds$Fold09,folds$Fold10),],scaleData[folds$Fold05,],cl=scaleData$diagnosis[c(folds$Fold01,folds$Fold02,folds$Fold03,folds$Fold04,folds$Fold06,folds$Fold07,folds$Fold08,folds$Fold09,folds$Fold10)],k=round(sqrt(length(folds$Fold05))))
+cT5 = table(Predicted = fold5_knn, Actual = scaleData$diagnosis[folds$Fold05])
+
+fold6_knn = knn(scaleData[c(folds$Fold01,folds$Fold02,folds$Fold03,folds$Fold04,folds$Fold05,folds$Fold07,folds$Fold08,folds$Fold09,folds$Fold10),],scaleData[folds$Fold06,],cl=scaleData$diagnosis[c(folds$Fold01,folds$Fold02,folds$Fold03,folds$Fold04,folds$Fold05,folds$Fold07,folds$Fold08,folds$Fold09,folds$Fold10)],k=round(sqrt(length(folds$Fold06))))
+cT6 = table(Predicted = fold6_knn, Actual = scaleData$diagnosis[folds$Fold06])
+
+fold7_knn = knn(scaleData[c(folds$Fold01,folds$Fold02,folds$Fold03,folds$Fold04,folds$Fold05,folds$Fold06,folds$Fold08,folds$Fold09,folds$Fold10),],scaleData[folds$Fold07,],cl=scaleData$diagnosis[c(folds$Fold01,folds$Fold02,folds$Fold03,folds$Fold04,folds$Fold05,folds$Fold06,folds$Fold08,folds$Fold09,folds$Fold10)],k=round(sqrt(length(folds$Fold07))))
+cT7 = table(Predicted = fold7_knn, Actual = scaleData$diagnosis[folds$Fold07])
+
+fold8_knn = knn(scaleData[c(folds$Fold01,folds$Fold02,folds$Fold03,folds$Fold04,folds$Fold05,folds$Fold06,folds$Fold07,folds$Fold09,folds$Fold10),],scaleData[folds$Fold08,],cl=scaleData$diagnosis[c(folds$Fold01,folds$Fold02,folds$Fold03,folds$Fold04,folds$Fold05,folds$Fold06,folds$Fold07,folds$Fold09,folds$Fold10)],k=round(sqrt(length(folds$Fold08))))
+cT8 = table(Predicted = fold8_knn, Actual = scaleData$diagnosis[folds$Fold08])
+
+fold9_knn = knn(scaleData[c(folds$Fold01,folds$Fold02,folds$Fold03,folds$Fold04,folds$Fold05,folds$Fold06,folds$Fold07,folds$Fold08,folds$Fold10),],scaleData[folds$Fold09,],cl=scaleData$diagnosis[c(folds$Fold01,folds$Fold02,folds$Fold03,folds$Fold04,folds$Fold05,folds$Fold06,folds$Fold07,folds$Fold08,folds$Fold10)],k=round(sqrt(length(folds$Fold09))))
+cT9 = table(Predicted = fold9_knn, Actual = scaleData$diagnosis[folds$Fold09])
+
+fold10_knn = knn(scaleData[c(folds$Fold01,folds$Fold02,folds$Fold03,folds$Fold04,folds$Fold05,folds$Fold06,folds$Fold07,folds$Fold08,folds$Fold09),],scaleData[folds$Fold10,],cl=scaleData$diagnosis[c(folds$Fold01,folds$Fold02,folds$Fold03,folds$Fold04,folds$Fold05,folds$Fold06,folds$Fold07,folds$Fold08,folds$Fold09)],k=round(sqrt(length(folds$Fold10))))
+cT10 = table(Predicted = fold10_knn, Actual = scaleData$diagnosis[folds$Fold10])
+
+#fold2_knn = knn(scaleData[c(folds$Fold1,folds$Fold3,folds$Fold4),],scaleData[folds$Fold2,],cl=scaleData$diagnosis[c(folds$Fold1,folds$Fold3,folds$Fold4)],k=round(sqrt(length(folds$Fold2))))
+#cT2 = table(Predicted = fold2_knn, Actual = scaleData$diagnosis[folds$Fold2])
+#fold3_knn = knn(scaleData[c(folds$Fold2,folds$Fold1,folds$Fold4),],scaleData[folds$Fold3,],cl=scaleData$diagnosis[c(folds$Fold2,folds$Fold1,folds$Fold4)],k=round(sqrt(length(folds$Fold3))))
+#cT3 = table(Predicted = fold3_knn, Actual = scaleData$diagnosis[folds$Fold3])
+#fold4_knn = knn(scaleData[c(folds$Fold2,folds$Fold3,folds$Fold1),],scaleData[folds$Fold4,],cl=scaleData$diagnosis[c(folds$Fold2,folds$Fold3,folds$Fold1)],k=round(sqrt(length(folds$Fold4))))
+#cT4 = table(Predicted = fold4_knn, Actual = scaleData$diagnosis[folds$Fold4])
+cT1
+cT2
+cT3
+cT4
+cT5
+cT6
+cT7
+cT8
+cT9
+cT10
+
+acc1 = (cT1[1,1]+cT1[2,2])/length(folds$Fold01)
+acc2 = (cT2[1,1]+cT2[2,2])/length(folds$Fold02)
+acc3 = (cT3[1,1]+cT3[2,2])/length(folds$Fold03)
+acc4 = (cT4[1,1]+cT4[2,2])/length(folds$Fold04)
+
+acc5 = (cT5[1,1]+cT5[2,2])/length(folds$Fold05)
+acc6 = (cT6[1,1]+cT6[2,2])/length(folds$Fold06)
+acc7 = (cT7[1,1]+cT7[2,2])/length(folds$Fold07)
+acc8 = (cT8[1,1]+cT8[2,2])/length(folds$Fold08)
+acc9 = (cT9[1,1]+cT9[2,2])/length(folds$Fold09)
+acc10 = (cT10[1,1]+cT10[2,2])/length(folds$Fold10)
+
+avg_acc = mean(acc1,acc2,acc3,acc4,acc5,acc6,acc7,acc8,acc9,acc10)
+avg_acc
+```
+
