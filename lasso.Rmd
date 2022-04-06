@@ -1,3 +1,8 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
 ```{r}
 library(ggplot2)
 library(psych) # Contains the winsor function and other helpful statistical tools
@@ -158,20 +163,26 @@ print(accuracies)
 # Finding nonzeros in importance frequency
 freqPercent = 5 # features chosen at least x times
 for ( i in seq(nrow(importance)) ) {
-  if ( importance[i,]$frequency >= freqPercent ) {
+  if ( importance[i,]$frequency > freqPercent ) {
     break
   }
 }
 
 nonzeroImportance = importance[i:nrow(importance),]
-title = sprintf("Features Chosen at least %d time(s)", freqPercent)
-ggplot(nonzeroImportance, aes(x=reorder(name, frequency), weight=frequency)) + 
-  geom_bar() +
+title = sprintf("Top Five Features Retained by LASSO", freqPercent)
+
+ggplot(nonzeroImportance, aes(x=reorder(name, frequency), weight=frequency, (color=frequency))) + 
+  geom_bar(stat="identity", fill="steelblue") +
   scale_fill_discrete(name="Variable Group") +
   ylab("Frequency") +
-  xlab("Variable Name") +
-  ggtitle(title) +
+  xlab("Feature Name") +
+  labs(title=title, subtitle="As determined by ten trails") +
   coord_flip()
 
+```
+
+```{r}
+#chunk added by Maria
+coefficients(model)
 ```
 
