@@ -1,3 +1,8 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
 ```{r}
 library(ggplot2)
 library(psych) # Contains the winsor function and other helpful statistical tools
@@ -45,9 +50,24 @@ pr.out$rotation
 
 ```{r}
 fviz_eig(pr.out, addlabels = TRUE)
-fviz_eig(pr.out, addlabels = TRUE)
+#fviz_eig(pr.out, addlabels = TRUE)
 fviz_pca_biplot(pr.out,col.ind='coord', #color of dots depends on size of loading
              repel = T) #makes sure names dont overlap)
+```
+```{r}
+#some plots - addition by Maria
+fviz_pca_ind(pr.out, label="var", habillage=scaleData$diagnosis, addEllipses=TRUE, ellipse.level=0.95)
+
+#hmmm
+fviz_pca_biplot(pr.out, habillage=scaleData$diagnosis, repel = T)+
+  labs(title ="PCA", x = "PC1", y = "PC2")
+
+#final
+fviz_pca_ind(pr.out, label="var", habillage=scaleData$diagnosis, col.ind=scaleData$diagnosis)+
+  labs(title ="PCA", x = "PC1", y = "PC2")+
+  scale_fill_discrete(name = 'Diagnosis:', labels=c("control", "schizophrenic" ))
+
+
 ```
 
 KNN
