@@ -25,4 +25,5 @@ Data Files:
 - EEGdataFull.zip: original data in its compiled form
 - EEGnew.rds: dataset of 281 engineered features
 - pVal_corr: P-values for correlation factors
+- MLforEEGpresentation: Powerpoint slides briefly explaining the project
 
