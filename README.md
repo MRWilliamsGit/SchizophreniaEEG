@@ -7,7 +7,7 @@ Though early diagnosis is critical, it has been notoriously difficult to find bi
 We used EEG recordings to generate a dataset of engineered features including region correlation, extracted the most variable features as determined by PCA, and analyzed them using LASSO models with an average 71% accuracy. The models were able to support the suggestion that correlation between certain areas of the brain are significant factors for the presence of schizophrenia. 
 
 ## Source Data
-- A full minute of EEG data at 128 Hz for 84 subjects, collected by 16 electrodes accross different areas of the brain 
+- A full minute of EEG data at 128 Hz for 84 subjects, collected by 16 electrodes across different areas of the brain 
 - Data was sourced from Lomonosov Moscow State University: http://brain.bio.msu.ru/eeg_schizophrenia.htm
 - Data was originally obtained and prepared by D.Sc., Prof. N.N. Gorbachevskaya (Leading Researcher at The Mental Health Research Center) and Ph.D. S.V. Borisov (Senior Researcher at Faculty of Biology M.V.Lomonosov Moscow State University).
 
